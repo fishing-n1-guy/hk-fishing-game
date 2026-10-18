@@ -313,38 +313,57 @@ export default function FishPage({ onBack }) {
 
   if (phase === 'reel') {
     const success = reelProgress >= bitePos - 10 && reelProgress <= bitePos + 10
+    // 計算 radial 角度
+    const dashOffset = 251.2 * (1 - reelProgress / 100)
+    const targetAngle = (bitePos / 100) * 360
     return (
       <Layout title={selectedSpot.name}>
         <FishingScene spot={selectedSpot} phase="reel" castPower={castPower} bitePos={bitePos} reelProgress={reelProgress}>
-          <div className="flex-1 flex flex-col items-center justify-end pb-8 px-6">
-            <div className="text-white text-lg text-shadow mb-3 animate-pulse">⚡ 魚訊！收線！</div>
+          <div className="flex-1 flex flex-col items-center justify-end pb-6 px-6">
+            {/* 魚訊提示 — 大字 */}
+            <div className={`text-white text-xl font-bold text-shadow mb-2 ${success ? 'text-emerald-300' : 'animate-pulse'}`}>
+              ⚡ {success ? '咬住啦！保持！' : '魚訊！收線！'}
+            </div>
 
-            {/* 進度條 */}
-            <div className="relative w-full max-w-xs mb-4">
-              <div className="w-full bg-white/30 rounded-full h-7 overflow-hidden">
-                <div
-                  className={`h-full transition-all ${
-                    success ? 'bg-emerald-400' : 'bg-amber-400'
-                  }`}
-                  style={{ width: `${reelProgress}%` }}
+            {/* Radial catch progress — 似 Bobber Fishing */}
+            <div className="relative w-40 h-40 mb-3">
+              <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                {/* 背景圓 */}
+                <circle cx="50" cy="50" r="40" stroke="rgba(255,255,255,0.2)" strokeWidth="8" fill="none" />
+                {/* 目標區（弧形） */}
+                <circle
+                  cx="50" cy="50" r="40"
+                  stroke="rgba(16, 185, 129, 0.6)"
+                  strokeWidth="8"
+                  fill="none"
+                  strokeDasharray={`${(20 / 100) * 251.2} 251.2`}
+                  strokeDashoffset={251.2 - (bitePos / 100) * 251.2 + (10 / 100) * 251.2}
                 />
-                <div
-                  className="absolute top-0 h-7 border-2 border-emerald-300 rounded"
-                  style={{
-                    left: `${bitePos - 10}%`,
-                    width: '20%',
-                    background: 'rgba(16, 185, 129, 0.3)',
-                  }}
+                {/* 進度弧 */}
+                <circle
+                  cx="50" cy="50" r="40"
+                  stroke={success ? '#10b981' : '#f59e0b'}
+                  strokeWidth="8"
+                  fill="none"
+                  strokeDasharray="251.2"
+                  strokeDashoffset={dashOffset}
+                  strokeLinecap="round"
+                  style={{ transition: 'stroke-dashoffset 100ms linear' }}
                 />
-              </div>
-              <div className="text-white text-center text-xs mt-1">
-                {reelProgress.toFixed(0)}% / 目標 {bitePos}%
+              </svg>
+              {/* 中央數字 */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-white text-3xl font-bold text-shadow">{reelProgress.toFixed(0)}</div>
+                  <div className="text-white/70 text-xs">目標 {bitePos}%</div>
+                </div>
               </div>
             </div>
 
+            {/* 收線掣 */}
             <button
               onClick={reelTap}
-              className="w-32 h-32 rounded-full bg-gradient-to-br from-amber-400 to-red-500 text-white text-xl font-bold shadow-2xl active:scale-95 animate-pulse"
+              className="w-28 h-28 rounded-full bg-gradient-to-br from-amber-400 to-red-500 text-white text-lg font-bold shadow-2xl active:scale-95 animate-pulse"
             >
               收線！
             </button>
