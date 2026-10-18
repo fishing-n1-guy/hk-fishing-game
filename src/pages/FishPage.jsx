@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Layout from '../components/Layout'
+import FishingScene from '../components/FishingScene'
+import FishArt from '../components/FishArt'
 import { useGameStore } from '../store/gameStore'
 import { FISHING_SPOTS } from '../data/spots'
 import { TIMES_OF_DAY, SEASONS, WEATHERS } from '../data/equipment'
@@ -134,22 +136,27 @@ export default function FishPage({ onBack }) {
                   setSelectedSpot(spot)
                   setPhase('prep')
                 }}
-                className={`w-full rounded-2xl overflow-hidden shadow-lg ${
+                className={`w-full rounded-2xl overflow-hidden shadow-lg relative ${
                   unlocked ? 'active:scale-95' : 'opacity-50'
                 } transition-transform`}
               >
-                <div className={`bg-gradient-to-br ${spot.bgGradient} p-4`}>
-                  <div className="flex items-center gap-3">
-                    <div className="text-4xl">{spot.icon}</div>
+                {/* 真實相 background */}
+                <div className="relative h-32">
+                  <img
+                    src={`${import.meta.env.BASE_URL}spots/${spot.id}.jpg`}
+                    alt={spot.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+                  <div className="absolute bottom-2 left-3 right-3 flex items-center gap-2">
+                    <div className="text-2xl">{spot.icon}</div>
                     <div className="flex-1 text-left">
-                      <div className="text-white font-bold text-lg text-shadow">{spot.name}</div>
+                      <div className="text-white font-bold text-base text-shadow">{spot.name}</div>
                       <div className="text-white/80 text-xs">{spot.region}</div>
                     </div>
-                    <div className="text-white text-2xl">
-                      {unlocked ? '›' : '🔒'}
-                    </div>
+                    {unlocked ? <div className="text-white text-xl">›</div> : <div className="text-xl">🔒</div>}
                   </div>
-                  <div className="text-white/90 text-xs mt-2 text-left">{spot.description}</div>
                 </div>
                 {!unlocked && (
                   <div className="bg-slate-800 text-slate-300 text-xs py-1.5 px-4">
@@ -157,6 +164,11 @@ export default function FishPage({ onBack }) {
                       `需釣到 ${spot.unlockRequirement.value} 條魚`}
                     {spot.unlockRequirement.type === 'rod_level' &&
                       `需升級釣竿至 Lv.${spot.unlockRequirement.value}`}
+                  </div>
+                )}
+                {unlocked && (
+                  <div className="bg-ocean-900/90 text-ocean-200 text-xs py-1.5 px-4 text-left">
+                    {spot.description}
                   </div>
                 )}
               </button>
@@ -256,30 +268,32 @@ export default function FishPage({ onBack }) {
   if (phase === 'cast') {
     return (
       <Layout title={selectedSpot.name} onBack={() => setPhase('prep')}>
-        <div className={`bg-gradient-to-b ${selectedSpot.bgGradient} min-h-[60vh] flex flex-col items-center justify-center px-6`}>
-          <div className="text-white text-lg text-shadow mb-8">
-            {castCharging ? '蓄力中...鬆手拋竿！' : '拋出！'}
+        <FishingScene spot={selectedSpot} phase="cast" castPower={castPower}>
+          <div className="flex-1 flex flex-col items-center justify-center px-6">
+            <div className="text-white text-lg text-shadow mb-4">
+              {castCharging ? '蓄力中...鬆手拋竿！' : '拋出！'}
+            </div>
+            <div className="w-full max-w-xs bg-white/20 rounded-full h-6 overflow-hidden backdrop-blur mb-2">
+              <div
+                className={`h-full transition-all ${
+                  castPower > 80 ? 'bg-red-400' : castPower > 50 ? 'bg-amber-400' : 'bg-emerald-400'
+                }`}
+                style={{ width: `${castPower}%` }}
+              />
+            </div>
+            <div className="text-white text-2xl font-bold mb-4">{castPower}%</div>
+            <button
+              onMouseDown={startCast}
+              onMouseUp={stopCast}
+              onTouchStart={startCast}
+              onTouchEnd={stopCast}
+              className="w-32 h-32 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-white text-xl font-bold shadow-2xl active:scale-95"
+            >
+              按住
+              <div className="text-sm font-normal">拋竿</div>
+            </button>
           </div>
-          <div className="w-full bg-white/20 rounded-full h-6 overflow-hidden backdrop-blur">
-            <div
-              className={`h-full transition-all ${
-                castPower > 80 ? 'bg-red-400' : castPower > 50 ? 'bg-amber-400' : 'bg-emerald-400'
-              }`}
-              style={{ width: `${castPower}%` }}
-            />
-          </div>
-          <div className="text-white text-3xl font-bold mt-4">{castPower}%</div>
-          <button
-            onMouseDown={startCast}
-            onMouseUp={stopCast}
-            onTouchStart={startCast}
-            onTouchEnd={stopCast}
-            className="mt-12 w-40 h-40 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-white text-2xl font-bold shadow-2xl active:scale-95"
-          >
-            按住
-            <div className="text-sm font-normal">拋竿</div>
-          </button>
-        </div>
+        </FishingScene>
       </Layout>
     )
   }
@@ -287,15 +301,12 @@ export default function FishPage({ onBack }) {
   if (phase === 'wait') {
     return (
       <Layout title={selectedSpot.name}>
-        <div className={`bg-gradient-to-b ${selectedSpot.bgGradient} min-h-[60vh] flex flex-col items-center justify-center px-6`}>
-          <div className="text-white text-lg text-shadow mb-6">等待魚訊...</div>
-          <div className="relative w-32 h-32">
-            <div className="absolute inset-0 rounded-full bg-white/40 animate-ripple"></div>
-            <div className="absolute inset-4 rounded-full bg-white/60 animate-ripple" style={{ animationDelay: '1s' }}></div>
-            <div className="absolute inset-8 rounded-full bg-white/80 animate-bob"></div>
+        <FishingScene spot={selectedSpot} phase="wait" castPower={castPower}>
+          <div className="flex-1 flex flex-col items-center justify-center px-6">
+            <div className="text-white text-lg text-shadow mb-6">等待魚訊...</div>
+            <div className="text-white/80 text-sm">拋竿力度: {castPower}%</div>
           </div>
-          <div className="text-white/80 text-sm mt-8">拋竿力度: {castPower}%</div>
-        </div>
+        </FishingScene>
       </Layout>
     )
   }
@@ -304,42 +315,42 @@ export default function FishPage({ onBack }) {
     const success = reelProgress >= bitePos - 10 && reelProgress <= bitePos + 10
     return (
       <Layout title={selectedSpot.name}>
-        <div className={`bg-gradient-to-b ${selectedSpot.bgGradient} min-h-[60vh] flex flex-col items-center justify-center px-6`}>
-          <div className="text-white text-lg text-shadow mb-6 animate-pulse">⚡ 魚訊！收線！</div>
+        <FishingScene spot={selectedSpot} phase="reel" castPower={castPower} bitePos={bitePos} reelProgress={reelProgress}>
+          <div className="flex-1 flex flex-col items-center justify-end pb-8 px-6">
+            <div className="text-white text-lg text-shadow mb-3 animate-pulse">⚡ 魚訊！收線！</div>
 
-          {/* 進度條 */}
-          <div className="relative w-full max-w-xs">
-            <div className="w-full bg-white/20 rounded-full h-8 overflow-hidden">
-              <div
-                className={`h-full transition-all ${
-                  success ? 'bg-emerald-400' : 'bg-amber-400'
-                }`}
-                style={{ width: `${reelProgress}%` }}
-              />
-              {/* 目標區 */}
-              <div
-                className="absolute top-0 h-8 border-2 border-emerald-300 rounded"
-                style={{
-                  left: `${bitePos - 10}%`,
-                  width: '20%',
-                  background: 'rgba(16, 185, 129, 0.2)',
-                }}
-              />
+            {/* 進度條 */}
+            <div className="relative w-full max-w-xs mb-4">
+              <div className="w-full bg-white/30 rounded-full h-7 overflow-hidden">
+                <div
+                  className={`h-full transition-all ${
+                    success ? 'bg-emerald-400' : 'bg-amber-400'
+                  }`}
+                  style={{ width: `${reelProgress}%` }}
+                />
+                <div
+                  className="absolute top-0 h-7 border-2 border-emerald-300 rounded"
+                  style={{
+                    left: `${bitePos - 10}%`,
+                    width: '20%',
+                    background: 'rgba(16, 185, 129, 0.3)',
+                  }}
+                />
+              </div>
+              <div className="text-white text-center text-xs mt-1">
+                {reelProgress.toFixed(0)}% / 目標 {bitePos}%
+              </div>
             </div>
-            <div className="text-white text-center text-sm mt-2">
-              {reelProgress.toFixed(0)}% / 目標 {bitePos}%
-            </div>
+
+            <button
+              onClick={reelTap}
+              className="w-32 h-32 rounded-full bg-gradient-to-br from-amber-400 to-red-500 text-white text-xl font-bold shadow-2xl active:scale-95 animate-pulse"
+            >
+              收線！
+            </button>
+            <div className="text-white/80 text-xs mt-3">撳愈多次愈快收線</div>
           </div>
-
-          <button
-            onClick={reelTap}
-            className="mt-12 w-40 h-40 rounded-full bg-gradient-to-br from-amber-400 to-red-500 text-white text-2xl font-bold shadow-2xl active:scale-95 animate-pulse"
-          >
-            收線！
-          </button>
-
-          <div className="text-white/80 text-sm mt-4">撳愈多次愈快收線</div>
-        </div>
+        </FishingScene>
       </Layout>
     )
   }
@@ -347,62 +358,69 @@ export default function FishPage({ onBack }) {
   if (phase === 'result') {
     return (
       <Layout title={selectedSpot.name} onBack={reset}>
-        <div className={`bg-gradient-to-b ${selectedSpot.bgGradient} min-h-[80vh] flex flex-col items-center justify-center px-6 py-8`}>
-          {lastResult.success ? (
-            <>
-              <div className="text-6xl mb-4 animate-bounce">🎉</div>
-              <div className="text-white text-2xl font-bold text-shadow mb-2">釣到啦！</div>
-              <div className="bg-white/95 rounded-2xl p-6 text-slate-800 shadow-2xl max-w-xs w-full">
-                <div className="text-center text-2xl font-bold mb-2">{lastResult.fish.name}</div>
-                <div className="text-center text-sm text-slate-500 mb-3">{lastResult.fish.nameEn}</div>
-                <div className="text-center text-sm text-slate-700 bg-slate-100 rounded-lg p-3">
-                  {lastResult.fish.desc}
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-2 text-center">
-                  <div className="bg-amber-100 rounded-lg p-2">
-                    <div className="text-xs text-amber-700">得分</div>
-                    <div className="text-lg font-bold text-amber-900">+{lastResult.catch.pointsGained}</div>
-                  </div>
-                  <div className="bg-blue-100 rounded-lg p-2">
-                    <div className="text-xs text-blue-700">經驗</div>
-                    <div className="text-lg font-bold text-blue-900">+{lastResult.catch.xpGained.toFixed(0)}</div>
-                  </div>
-                </div>
-                {lastResult.catch.isNew && (
-                  <div className="mt-3 text-center bg-emerald-500 text-white text-sm font-bold rounded-lg p-2">
-                    ✨ 首次釣到新魚種！
+        <FishingScene spot={selectedSpot} phase="result">
+          <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 bg-black/40">
+            {lastResult.success ? (
+              <>
+                <div className="text-5xl mb-3 animate-bounce">🎉</div>
+                <div className="text-white text-2xl font-bold text-shadow mb-3">釣到啦！</div>
+                {lastResult.fish.image && (
+                  <div className="mb-4 w-32 h-24 bg-white/10 rounded-xl p-2 backdrop-blur">
+                    <img src={lastResult.fish.image} alt={lastResult.fish.name} className="w-full h-full object-contain" />
                   </div>
                 )}
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="text-6xl mb-4">😢</div>
-              <div className="text-white text-2xl font-bold text-shadow mb-2">
-                {lastResult.escaped ? '魚走咗！' : lastResult.lost ? '甩魚！' : '無魚獲'}
-              </div>
-              <div className="text-white/80 text-sm">再接再厲！</div>
-            </>
-          )}
+                <div className="bg-white/95 rounded-2xl p-5 text-slate-800 shadow-2xl max-w-xs w-full">
+                  <div className="text-center text-2xl font-bold mb-1">{lastResult.fish.name}</div>
+                  <div className="text-center text-xs text-slate-500 mb-3">{lastResult.fish.nameEn}</div>
+                  <div className="text-xs text-slate-700 bg-slate-100 rounded-lg p-2 mb-3">
+                    {lastResult.fish.desc}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-center">
+                    <div className="bg-amber-100 rounded-lg p-2">
+                      <div className="text-xs text-amber-700">得分</div>
+                      <div className="text-base font-bold text-amber-900">+{lastResult.catch.pointsGained}</div>
+                    </div>
+                    <div className="bg-blue-100 rounded-lg p-2">
+                      <div className="text-xs text-blue-700">經驗</div>
+                      <div className="text-base font-bold text-blue-900">+{lastResult.catch.xpGained.toFixed(0)}</div>
+                    </div>
+                  </div>
+                  {lastResult.catch.isNew && (
+                    <div className="mt-3 text-center bg-emerald-500 text-white text-xs font-bold rounded-lg p-1.5">
+                      ✨ 首次釣到新魚種！
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-5xl mb-3">😢</div>
+                <div className="text-white text-2xl font-bold text-shadow mb-2">
+                  {lastResult.escaped ? '魚走咗！' : lastResult.lost ? '甩魚！' : '無魚獲'}
+                </div>
+                <div className="text-white/80 text-sm">再接再厲！</div>
+              </>
+            )}
 
-          <div className="mt-8 w-full max-w-xs space-y-2">
-            <button
-              onClick={() => {
-                setLastResult(null)
-                setPhase('prep')
-              }}
-              className="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95"
-            >
-              🎣 再釣一次
-            </button>
-            <button
-              onClick={reset}
-              className="w-full bg-ocean-700 text-white py-3 rounded-xl active:scale-95"
-            >
-              返回釣點列表
-            </button>
+            <div className="mt-6 w-full max-w-xs space-y-2">
+              <button
+                onClick={() => {
+                  setLastResult(null)
+                  setPhase('prep')
+                }}
+                className="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95"
+              >
+                🎣 再釣一次
+              </button>
+              <button
+                onClick={reset}
+                className="w-full bg-ocean-700 text-white py-3 rounded-xl active:scale-95"
+              >
+                返回釣點列表
+              </button>
+            </div>
           </div>
-        </div>
+        </FishingScene>
       </Layout>
     )
   }

@@ -103,14 +103,16 @@ export default function RoomPage({ onBack }) {
                     }
                   }}
                   disabled={!inTank && !canAdd}
-                  className={`p-3 rounded-xl border-2 ${
+                  className={`p-2 rounded-xl border-2 ${
                     inTank ? 'bg-emerald-500 border-emerald-300' :
                     canAdd ? 'bg-ocean-700 border-ocean-400' :
                     'bg-ocean-800 border-ocean-700 opacity-50'
                   }`}
                 >
-                  <div className="text-2xl mb-1">🐟</div>
-                  <div className="text-xs text-white truncate">{fish.name}</div>
+                  <div className="h-12 flex items-center justify-center">
+                    <FishArt fish={fish} size={50} />
+                  </div>
+                  <div className="text-xs text-white truncate mt-1">{fish.name}</div>
                   <div className="text-xs text-white/60">
                     {inTank ? '✓' : canAdd ? '+' : '滿'}
                   </div>
